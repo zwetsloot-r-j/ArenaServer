@@ -12,6 +12,9 @@ defmodule ArenaServer do
       supervisor(ArenaServer.Endpoint, []),
       # Start your own worker by calling: ArenaServer.Worker.start_link(arg1, arg2, arg3)
       # worker(ArenaServer.Worker, [arg1, arg2, arg3]),
+      supervisor(ArenaServer.BattleSupervisor, []),
+      worker(ArenaServer.MainState, []),
+      worker(ArenaServer.UserStore, []),
     ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html

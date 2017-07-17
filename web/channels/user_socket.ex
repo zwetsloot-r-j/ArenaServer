@@ -20,7 +20,8 @@ defmodule ArenaServer.UserSocket do
   # See `Phoenix.Token` documentation for examples in
   # performing token verification on connect.
   def connect(_params, socket) do
-    {:ok, socket}
+    user = ArenaServer.MainState.run_action(ArenaServer.Action.CreateUser.create_user())
+    {:ok, assign(socket, :user, user)}
   end
 
   # Socket id's are topics that allow you to identify all sockets for a given user:
@@ -33,5 +34,5 @@ defmodule ArenaServer.UserSocket do
   #     ArenaServer.Endpoint.broadcast("users_socket:#{user.id}", "disconnect", %{})
   #
   # Returning `nil` makes this socket anonymous.
-  def id(_socket), do: nil
+  def id(socket), do: "user:#{socket.assigns.user}"
 end
