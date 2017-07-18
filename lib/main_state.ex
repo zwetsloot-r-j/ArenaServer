@@ -47,7 +47,7 @@ defmodule ArenaServer.MainState do
       _ ->
         {:reply, [
           ArenaServer.Action.JoinBattle.join_battle(last_id, player_id),
-          ArenaServer.Action.Connection.join_battle(last_id, player_id)
+          ArenaServer.Action.JoinChannel.join_battle(last_id, player_id)
         ], state}
     end
   end
