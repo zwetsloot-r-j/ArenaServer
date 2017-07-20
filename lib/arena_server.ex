@@ -13,6 +13,7 @@ defmodule ArenaServer do
       # Start your own worker by calling: ArenaServer.Worker.start_link(arg1, arg2, arg3)
       # worker(ArenaServer.Worker, [arg1, arg2, arg3]),
       supervisor(ArenaServer.BattleSupervisor, []),
+      supervisor(ArenaServer.MovementSupervisor, []),
       worker(ArenaServer.MainState, []),
       worker(ArenaServer.UserStore, []),
     ]
