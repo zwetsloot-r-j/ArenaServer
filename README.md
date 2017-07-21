@@ -1,5 +1,7 @@
 # ArenaServer
 
+WIP
+
 ## Description
 
 Server application for a simple top down multiplayer spacecraft shooter game, using web-sockets and Redux for the client side.
