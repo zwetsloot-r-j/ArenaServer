@@ -7,8 +7,8 @@ defmodule ArenaServer.MovementState do
     y: 0,
     rotation: 90,
     acceleration: 0,
-    external_force_x: 0,
-    external_force_y: 0,
+    externalForceX: 0,
+    externalForceY: 0,
     action_history: [],
     action_sync_status: %{version: 0}
 

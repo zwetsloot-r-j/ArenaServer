@@ -109,7 +109,7 @@ defmodule ArenaServer.BattleState do
   defp sync_fighters(user, action, %{fighters: fighters}) do
     fighters
     |> Enum.reduce([], fn
-      {_, %{movement_id: movement_id}}, action_history ->
+      {_, %{movementId: movement_id}}, action_history ->
         ArenaServer.MovementState.run_action(movement_id, action, user) ++ action_history
     end)
   end

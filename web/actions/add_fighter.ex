@@ -2,8 +2,8 @@ defmodule ArenaServer.Action.AddFighter do
 
   defstruct type: "add-fighter",
     payload: %{
-      movement_id: "0",
-      player_id: "0",
+      movementId: "0",
+      playerId: "0",
       color: "green"
     }
 
