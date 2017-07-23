@@ -17,7 +17,8 @@ defmodule ArenaServer.MovementState do
     "set-start-position",
     "accelerate",
     "rotate",
-    "apply-force"
+    "apply-force",
+    "update-movement",
   ]
 
   def start_link(id) do
@@ -56,8 +57,9 @@ defmodule ArenaServer.MovementState do
   def handle_call(
     {:push_action, action, _user},
     _,
-    %{action_history: action_history, action_sync_status: action_sync_status} = state
+    %{id: id, action_history: action_history, action_sync_status: action_sync_status} = state
   ) do
+    action = Map.put(action, :serverId, ["movement" <> id, action_sync_status.version])
     action_history = [action | action_history]
     new_version = action_sync_status.version + 1
     action_sync_status = action_sync_status
@@ -77,7 +79,7 @@ defmodule ArenaServer.MovementState do
     end
 
     diff = action_sync_status.version - user_sync_version 
-    action_sync_status = Map.put(action_sync_status, user, action_sync_status.version)
+    # action_sync_status = Map.put(action_sync_status, user, action_sync_status.version)
     {
       :reply,
       {:ok, [ArenaServer.Action.SyncMovement.sync_movement(id, action_sync_status.version) | Enum.take(action_history, diff)]}, 
@@ -95,16 +97,7 @@ defmodule ArenaServer.MovementState do
   end
 
   def handle_call(
-    {:"accelerate", %{payload: %{acceleration: acceleration}}, _user},
-    _,
-    state
-  ) do
-    state = %{state | acceleration: acceleration}
-    {:reply, :push_action, state}
-  end
-
-  def handle_call(
-    {:"apply_force", %{payload: %{x: x, y: y}}, _user},
+    {:"apply-force", %{payload: %{x: x, y: y}}, _user},
     _,
     state
   ) do
@@ -113,11 +106,29 @@ defmodule ArenaServer.MovementState do
   end
 
   def handle_call(
-    {:"rotate", %{payload: %{rotation: rotation}}, _user},
+    {:"update-movement", %{payload: %{rotation: rotation, acceleration: acceleration}}, _user},
+    _,
+    state
+  ) do
+    state = %{state | rotation: rotation, acceleration: acceleration}
+    {:reply, :push_action, state}
+  end
+
+  def handle_call(
+    {:"update-movement", %{payload: %{rotation: rotation}}, _user},
     _,
     state
   ) do
     state = %{state | rotation: rotation}
+    {:reply, :push_action, state}
+  end
+
+  def handle_call(
+    {:"update-movement", %{payload: %{acceleration: acceleration}}, _user},
+    _,
+    state
+  ) do
+    state = %{state | acceleration: acceleration}
     {:reply, :push_action, state}
   end
 

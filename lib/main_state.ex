@@ -53,7 +53,7 @@ defmodule ArenaServer.MainState do
         state = %{state | battle: %{state.battle | last_id: last_id + 1}}
         handle_call({:"join-battle", action, user}, nil, state)
       _ ->
-        join_battle_action = ArenaServer.Action.JoinBattle.join_battle(battle_id)
+        join_battle_action = ArenaServer.Action.JoinBattle.join_battle(battle_id, user)
         join_battle_action |> ArenaServer.UserStore.run_action(user)
         {:reply, [
           join_battle_action,

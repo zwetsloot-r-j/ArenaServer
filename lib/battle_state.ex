@@ -14,6 +14,7 @@ defmodule ArenaServer.BattleState do
     "add-fighter",
     "message",
     "sync-battle",
+    "update-movement",
   ]
 
   @max_player_count 2
@@ -58,6 +59,7 @@ defmodule ArenaServer.BattleState do
     _,
     %{action_history: action_history, action_sync_status: action_sync_status} = state
   ) do
+    action = Map.put(action, :serverId, ["battle", action_sync_status.version])
     action_history = [action | action_history]
     new_version = action_sync_status.version + 1
     action_sync_status = action_sync_status
@@ -94,7 +96,7 @@ defmodule ArenaServer.BattleState do
     %{action_history: action_history, action_sync_status: action_sync_status} = state
   ) do
     diff = action_sync_status.version - action_sync_status[user]
-    action_sync_status = Map.put(action_sync_status, user, action_sync_status.version)
+    # action_sync_status = Map.put(action_sync_status, user, action_sync_status.version)
     action_history = action_history
       |> Enum.take(diff)
       |> (fn(action_history) -> [ArenaServer.Action.SyncBattle.sync_battle(action_sync_status.version) | action_history] end).()
@@ -104,6 +106,15 @@ defmodule ArenaServer.BattleState do
       {:ok, action_history}, 
       %{state | action_sync_status: action_sync_status}
     }
+  end
+
+  def handle_call(
+    {:"update-movement", %{payload: %{movementId: movement_id}} = action, user},
+    _,
+    state
+  ) do
+    ArenaServer.MovementState.run_action(movement_id, action, user)
+    {:reply, :ok, state}
   end
 
   defp sync_fighters(user, action, %{fighters: fighters}) do
