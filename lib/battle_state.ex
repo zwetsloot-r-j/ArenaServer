@@ -99,6 +99,7 @@ defmodule ArenaServer.BattleState do
     # action_sync_status = Map.put(action_sync_status, user, action_sync_status.version)
     action_history = action_history
       |> Enum.take(diff)
+      |> Enum.reverse()
       |> (fn(action_history) -> [ArenaServer.Action.SyncBattle.sync_battle(action_sync_status.version) | action_history] end).()
       |> Kernel.++(sync_fighters(user, action, state))
     {

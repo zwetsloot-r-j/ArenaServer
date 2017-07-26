@@ -82,7 +82,10 @@ defmodule ArenaServer.MovementState do
     # action_sync_status = Map.put(action_sync_status, user, action_sync_status.version)
     {
       :reply,
-      {:ok, [ArenaServer.Action.SyncMovement.sync_movement(id, action_sync_status.version) | Enum.take(action_history, diff)]}, 
+      {:ok, [
+        ArenaServer.Action.SyncMovement.sync_movement(id, action_sync_status.version)
+        | Enum.take(action_history, diff) |> Enum.reverse()
+      ]}, 
       %{state | action_sync_status: action_sync_status}
     }
   end
