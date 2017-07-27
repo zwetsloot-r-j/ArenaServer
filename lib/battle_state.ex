@@ -4,7 +4,7 @@ defmodule ArenaServer.BattleState do
 
   defstruct id: "0",
     action_history: [],
-    action_sync_status: %{version: 0},
+    action_sync_status: %{version: -1},
     players: %{},
     fighters: %{},
     projectiles: %{}
@@ -15,6 +15,8 @@ defmodule ArenaServer.BattleState do
     "message",
     "sync-battle",
     "update-movement",
+    "confirm-sync-battle",
+    "confirm-sync-movement",
   ]
 
   @max_player_count 2
@@ -29,6 +31,8 @@ defmodule ArenaServer.BattleState do
 
   def run_action(id, %{type: type} = action, user, true) do
     case GenServer.call(get_registration_by_id(id), {String.to_existing_atom(type), action, user}) do
+      :ok ->
+        :ok
       {:ok, response} ->
         response
       {:push_action, %{type: ^type} = action} ->
@@ -59,11 +63,12 @@ defmodule ArenaServer.BattleState do
     _,
     %{action_history: action_history, action_sync_status: action_sync_status} = state
   ) do
-    action = Map.put(action, :serverId, ["battle", action_sync_status.version])
-    action_history = [action | action_history]
     new_version = action_sync_status.version + 1
     action_sync_status = action_sync_status
     |> Map.put(:version, new_version)
+
+    action = Map.put(action, :serverId, ["battle", action_sync_status.version])
+    action_history = [action | action_history]
 
     {:reply, :ok, %{state | action_history: action_history, action_sync_status: action_sync_status}}
   end
@@ -75,7 +80,7 @@ defmodule ArenaServer.BattleState do
       false ->
         state = state
         |> Map.put(:players, Map.put(state.players, user, %{}))
-        |> Map.put(:action_sync_status, Map.put(state.action_sync_status, user, 0))
+        |> Map.put(:action_sync_status, Map.put(state.action_sync_status, user, -1))
         {:reply, :push_action, state}
     end
   end
@@ -96,7 +101,6 @@ defmodule ArenaServer.BattleState do
     %{action_history: action_history, action_sync_status: action_sync_status} = state
   ) do
     diff = action_sync_status.version - action_sync_status[user]
-    # action_sync_status = Map.put(action_sync_status, user, action_sync_status.version)
     action_history = action_history
       |> Enum.take(diff)
       |> Enum.reverse()
@@ -107,6 +111,30 @@ defmodule ArenaServer.BattleState do
       {:ok, action_history}, 
       %{state | action_sync_status: action_sync_status}
     }
+  end
+
+  def handle_call(
+    {:"confirm-sync-movement", %{payload: %{id: id}} = action, user},
+    _,
+    state
+  ) do
+    ArenaServer.MovementState.run_action(id, action, user)
+
+    {:reply, :ok, state}
+  end
+
+  def handle_call(
+    {:"confirm-sync-battle", %{payload: %{version: version}}, user},
+    _,
+    %{action_sync_status: action_sync_status} = state
+  ) do
+    action_sync_status = case action_sync_status[user] do
+      nil -> Map.put(action_sync_status, user, version)
+      previous_version when version > previous_version -> Map.put(action_sync_status, user, version)
+      _ -> action_sync_status
+    end
+
+    {:reply, :ok, %{state | action_sync_status: action_sync_status}}
   end
 
   def handle_call(

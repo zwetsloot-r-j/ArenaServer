@@ -10,7 +10,7 @@ defmodule ArenaServer.MovementState do
     externalForceX: 0,
     externalForceY: 0,
     action_history: [],
-    action_sync_status: %{version: 0}
+    action_sync_status: %{version: -1}
 
   @movement_actions [
     "sync-battle",
@@ -19,6 +19,7 @@ defmodule ArenaServer.MovementState do
     "rotate",
     "apply-force",
     "update-movement",
+    "confirm-sync-movement",
   ]
 
   def start_link(id) do
@@ -59,11 +60,12 @@ defmodule ArenaServer.MovementState do
     _,
     %{id: id, action_history: action_history, action_sync_status: action_sync_status} = state
   ) do
-    action = Map.put(action, :serverId, ["movement" <> id, action_sync_status.version])
-    action_history = [action | action_history]
     new_version = action_sync_status.version + 1
     action_sync_status = action_sync_status
     |> Map.put(:version, new_version)
+
+    action = Map.put(action, :serverId, ["movement" <> id, action_sync_status.version])
+    action_history = [action | action_history]
 
     {:reply, :ok, %{state | action_history: action_history, action_sync_status: action_sync_status}}
   end
@@ -74,12 +76,11 @@ defmodule ArenaServer.MovementState do
     %{id: id, action_history: action_history, action_sync_status: action_sync_status} = state
   ) do
     user_sync_version = case action_sync_status[user] do
-      nil -> 0
+      nil -> -1
       version -> version
     end
 
     diff = action_sync_status.version - user_sync_version 
-    # action_sync_status = Map.put(action_sync_status, user, action_sync_status.version)
     {
       :reply,
       {:ok, [
@@ -88,6 +89,20 @@ defmodule ArenaServer.MovementState do
       ]}, 
       %{state | action_sync_status: action_sync_status}
     }
+  end
+
+  def handle_call(
+    {:"confirm-sync-movement", %{payload: %{version: version}}, user},
+    _,
+    %{action_sync_status: action_sync_status} = state
+  ) do
+    action_sync_status = case action_sync_status[user] do
+      nil -> Map.put(action_sync_status, user, version)
+      previous_version when version > previous_version -> Map.put(action_sync_status, user, version)
+      _ -> action_sync_status
+    end
+
+    {:reply, :ok, %{state | action_sync_status: action_sync_status}}
   end
 
   def handle_call(
